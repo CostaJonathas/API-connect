@@ -1,0 +1,161 @@
+import requests
+import pandas as pd
+import os
+import pytz
+import pyodbc
+from datetime import datetime
+
+Plataformas = ["MT01", "MT02", "MT03", "MT04"]
+hoje = datetime.now()
+url1 = "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.tenant.list"
+url2 = "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.tenant.list"
+url3 = "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.tenant.list"
+url4 = "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.tenant.list"
+headers1 = {
+    "Authorization": f"Bearer Token",
+    "Content-Type": "application/json"
+}
+
+# Caminho para salvar e o nome do arquivo
+excel_file_path = "Seu caminho para salvar o arquivo"
+
+urls = [url1, url2, url3, url4]
+result = []
+
+for select_url in urls:
+    if select_url == url1:
+        Plataforma = Plataformas[0]
+    elif select_url == url2:
+        Plataforma = Plataformas[1]
+    elif select_url == url3:
+        Plataforma = Plataformas[2]
+    else:
+        Plataforma = Plataformas[3]
+    response = requests.get(select_url, headers=headers1)
+    if response.status_code == 200:
+        data1 = response.json()
+    for id in data1:
+        # Convertendo o id para string, pois no seu JSON os ids são strings
+        str_id = str(id)
+        
+        # Verificando se o id existe no JSON
+        if str_id in data1:
+            entry = {
+                'id' : str_id,
+                'Nome' : data1[id]['name'],
+                'TenantCode' : data1[id]['tenantcode'],
+                'Package_id' : data1[id]['package_id'],
+                'package' : data1[id]['package'],
+                'ext_length' : data1[id]['ext_length'],
+                'Country_id' : data1[id]['country_id'],
+                'Coutry_code' : data1[id]['country_code'],
+                'Plataforma' : Plataforma
+            }
+
+        result.append(entry)
+
+# Converte a lista de dicionários em um DataFrame
+df1 = pd.DataFrame(result)
+
+# Escreve o DataFrame no arquivo Excel
+with pd.ExcelWriter(excel_file_path, engine="openpyxl", mode="w") as writer:
+    df1.to_excel(writer, index=False)
+
+# Licenças a serem iteradas
+lic = ['OFFICE', 'BUSINESS', 'WEB', 'AGENT', 'SUPERVISOR', 'MOBILE', 'CRM', 'Call Popup']
+
+# Caminho para salvar e o nome do arquivo
+excel_file_path2 = "Seu caminho para salvar o arquivo"
+result2 = []
+
+# Associe cada plataforma à sua respectiva URL
+plataformas_urls = {
+    'MT01': "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.apps.list&server={}",
+    'MT02': "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.apps.list&server={}",
+    'MT03': "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.apps.list&server={}",
+    'MT04': "https://{domínio}.brik.net.br/?apikey={Token}&action=pbxware.apps.list&server={}"
+}
+
+headers2 = {
+    "Authorization": "Bearer Token",
+    "Content-Type": "application/json"
+}
+
+result2 = []
+
+for Plataforma, url in plataformas_urls.items():
+    for id in data1:
+        str_id = str(id)
+        select_url2 = url.format(str_id)
+        response2 = requests.get(select_url2, headers=headers2)
+        if response2.status_code == 200:
+            data2 = response2.json()
+            for lic, data_lic in data2.items():
+                if 'total' in data_lic and 'in_use' in data_lic:
+                    entry2 = {
+                        'idTenant': str_id,
+                        'Data' : hoje,
+                        'Tipo': lic,
+                        'InUse': data_lic['in_use'],
+                        'Total': data_lic['total'],
+                        'Plataforma' : Plataforma
+                    }
+                    result2.append(entry2)
+
+
+# Converte a lista de dicionários em um DataFrame
+df2 = pd.DataFrame(result2)
+
+# Escreve o DataFrame no arquivo Excel
+with pd.ExcelWriter(excel_file_path2, engine="openpyxl", mode="w") as writer:
+    df2.to_excel(writer, index=False)
+print('Terminou de gerar as tabelas')
+    
+server = 'IP do servidor' 
+database = 'base de dados' 
+username = 'username do banco de dados' 
+password = 'senha do banco de dados' 
+
+# para autenticação do SQL Server
+dados_conexao = 'DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password
+
+# para autenticação do Windows
+# dados_conexao = 'DRIVER={ODBC Driver 17 for SQL Server};SERVER='+server+';DATABASE='+database+';Trusted_Connection=yes'
+
+conexao = pyodbc.connect(dados_conexao)
+print("Conexão com o banco de dados estabelecida")
+
+cursor = conexao.cursor()
+
+# Apaga todos os dados existentes nas tabelas
+cursor.execute("TRUNCATE TABLE ConnectTenants_teste")
+cursor.execute("TRUNCATE TABLE ConnectTenantsConfig_teste")
+
+# Escreve o DataFrame no banco de dados SQL
+for index, row in df1.iterrows():
+    # Truncando os dados para um comprimento específico
+    row['id'] = str(row['id'])[:50]
+    row['Nome'] = row['Nome'][:50]
+    row['TenantCode'] = row['TenantCode'][:50]
+    row['Package_id'] = str(row['Package_id'])[:50]
+    row['package'] = row['package'][:50]
+    row['ext_length'] = str(row['ext_length'])[:50]
+    row['Country_id'] = str(row['Country_id'])[:50]
+    row['Coutry_code'] = str(row['Coutry_code'])[:50]
+    row['Plataforma'] = row['Plataforma'][:50]
+    cursor.execute("INSERT INTO ConnectTenants_teste (id, Nome, TenantCode, Package_id, package, ext_length, Country_id, Coutry_code, Plataforma) values(?,?,?,?,?,?,?,?,?)", row['id'], row['Nome'], row['TenantCode'], row['Package_id'], row['package'], row['ext_length'], row['Country_id'], row['Coutry_code'], row['Plataforma'])
+
+# Escreve o DataFrame no banco de dados SQL
+for index, row in df2.iterrows():
+    # Truncando os dados para um comprimento específico
+    row['idTenant'] = str(row['idTenant'])[:50]
+    row['Data'] = str(row['Data'])[:50]
+    row['Tipo'] = row['Tipo'][:50]
+    row['InUse'] = str(row['InUse'])[:50]
+    row['Total'] = str(row['Total'])[:50]
+    row['Plataforma'] = row['Plataforma'][:50]
+    cursor.execute("INSERT INTO ConnectTenantsConfig_teste (idTenant, Data, Tipo, InUse, Total, Plataforma) values(?,?,?,?,?,?)", row['idTenant'], hoje, row['Tipo'], row['InUse'], row['Total'], row['Plataforma'])
+
+conexao.commit()
+conexao.close()
+print("Enviado para o SQL")
