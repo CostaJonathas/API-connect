@@ -1,65 +1,40 @@
-Script de Integração com API PBXWare e SQL Server
-Descrição
-Este script realiza:
-
-Consulta à API de múltiplas plataformas (MT01 a MT04) para extrair dados de tenants e licenças.
-
-Geração de dois arquivos Excel com os dados coletados.
-
-Inserção desses dados em duas tabelas SQL Server (ConnectTenants_teste e ConnectTenantsConfig_teste).
-
+API-connect - Integração com PBXWare e SQL Server
+Este script em Python conecta-se à API de múltiplas plataformas PBXWare (MT01 a MT04), coleta informações sobre tenants e licenças, exporta os dados em arquivos Excel e envia tudo para um banco de dados SQL Server.
+Funcionalidades
+- Consulta à API de tenants de várias plataformas
+•	- Coleta de informações como:
+•	  - Nome, pacote, código do tenant, país, etc.
+•	  - Uso de licenças (OFFICE, AGENT, SUPERVISOR, etc.)
+- Exportação dos dados em dois arquivos Excel
+•	- Inserção dos dados em tabelas do SQL Server:
+•	  - ConnectTenants_teste
+•	  - ConnectTenantsConfig_teste
 Requisitos
-Python 3.x
-
-Bibliotecas necessárias:
-
-requests
-
-pandas
-
-openpyxl
-
-pyodbc
-
-pytz
-
-Você pode instalar todas com o comando:
-
-nginx
-Copiar
-Editar
+- Python 3.x
+Instale os pacotes necessários com o comando:
 pip install requests pandas openpyxl pyodbc pytz
-Etapas do Script
-Define as plataformas e URLs da API.
-
-Coleta dados dos tenants (id, nome, pacote, país, etc.).
-
-Salva os dados dos tenants em um arquivo Excel.
-
-Para cada tenant, coleta dados sobre o uso de licenças (OFFICE, AGENT, CRM, etc.).
-
-Salva os dados das licenças em outro arquivo Excel.
-
-Conecta ao banco de dados SQL Server.
-
-Limpa as tabelas usando TRUNCATE.
-
-Insere os dados das planilhas no banco.
-
+Etapas do Processo
+1.	1. Define plataformas e URLs da API
+2.	2. Consulta os tenants e salva no Excel
+3.	3. Consulta o uso de licenças por tenant e salva no Excel
+4.	4. Conecta ao banco de dados SQL Server
+5.	5. Apaga os dados antigos (TRUNCATE TABLE)
+6.	6. Insere os dados atualizados nas tabelas
 Configurações Necessárias
-Você deve substituir no código:
-
-{domínio} pelo domínio da sua API
-
-{Token} pelo seu token da API
-
-excel_file_path e excel_file_path2 pelos caminhos onde os arquivos Excel serão salvos
-
-Dados do SQL Server: server, database, username, password
-
+Antes de executar o script, edite o código para configurar:
+- {domínio} = domínio da sua API
+- {Token} = token de autenticação da API
+- excel_file_path e excel_file_path2 = caminhos para salvar os arquivos Excel
+- Conexão com o banco SQL Server:
+  - server
+  - database
+  - username
+  - password
 Observações
-As tabelas ConnectTenants_teste e ConnectTenantsConfig_teste precisam existir no SQL Server.
-
-O script apaga os dados antigos com TRUNCATE antes de inserir os novos.
-
-Os dados são truncados para não ultrapassar os limites de caracteres das colunas no banco.
+- As tabelas ConnectTenants_teste e ConnectTenantsConfig_teste devem existir no banco de dados.
+- Os dados antigos são apagados com TRUNCATE antes da nova inserção.
+- Alguns campos são truncados para respeitar o limite de caracteres do banco.
+Como executar
+1. Salve o código como script Python (.py)
+2. Execute com o comando:
+python nome_do_arquivo.py
